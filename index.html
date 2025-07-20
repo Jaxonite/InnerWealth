@@ -67,16 +67,22 @@
 
 
         // --- Firebase Configuration ---
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : { apiKey: "YOUR_API_KEY", authDomain: "YOUR_AUTH_DOMAIN", projectId: "YOUR_PROJECT_ID" };
+        const firebaseConfig = {
+            apiKey: "AIzaSyA0gDOZIpV_XtGwAI_6PQsvUpTkn0saJe8",
+            authDomain: "innerwealth-8d345.firebaseapp.com",
+            projectId: "innerwealth-8d345",
+            storageBucket: "innerwealth-8d345.appspot.com",
+            messagingSenderId: "91315045649",
+            appId: "1:91315045649:web:2d01e70a5dbfb4a92cf8b0",
+            measurementId: "G-1GRHLEQVT4"
+        };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
         // --- App ID for Firestore Path ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-mental-health-app';
+        const appId = 'innerwealth-8d345';
 
         // --- Theme Context for Dark Mode ---
         const ThemeContext = createContext();
@@ -223,7 +229,7 @@
         };
 
         const MoodTrackerScreen = ({ userId }) => {
-            const moods = [ { label: 'Happy', emoji: '😊', value: 5 }, { label: 'Good', emoji: '�', value: 4 }, { label: 'Okay', emoji: '😐', value: 3 }, { label: 'Sad', emoji: '😟', value: 2 }, { label: 'Awful', emoji: '😭', value: 1 }];
+            const moods = [ { label: 'Happy', emoji: '😊', value: 5 }, { label: 'Good', emoji: '🙂', value: 4 }, { label: 'Okay', emoji: '😐', value: 3 }, { label: 'Sad', emoji: '😟', value: 2 }, { label: 'Awful', emoji: '😭', value: 1 }];
             const [selectedMood, setSelectedMood] = useState(null);
             const [selectedActivities, setSelectedActivities] = useState([]);
             const [journal, setJournal] = useState('');
@@ -356,4 +362,3 @@
     </script>
 </body>
 </html>
-�

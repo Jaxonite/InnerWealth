@@ -44,11 +44,37 @@
         const BarChart3 = () => <Icon name="📊" />;
         const LogOut = () => <Icon name="🔄" />;
         const Send = () => <Icon name="➤" />;
-        const Bot = () => <Icon name="🤖" />;
         const User = () => <Icon name="👤" />;
         const Award = () => <Icon name="🏆" />;
         const Calendar = () => <Icon name="🗓️" />;
         const BarChartHorizontal = () => <Icon name="📈" />;
+        
+        // Custom SVG for the bot avatar
+        const Bot = ({ size = 20 }) => (
+            <svg width={size+4} height={size+4} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                {/* Face */}
+                <circle cx="12" cy="12" r="10" fill="#FCE7F3"/>
+                
+                {/* Curly Hair */}
+                <path d="M5.5 12.5C3.5 8.5 7 4 12 4C17 4 20.5 8.5 18.5 12.5" fill="#18181B"/>
+                <circle cx="7" cy="7" r="3" fill="#18181B"/>
+                <circle cx="12" cy="6" r="3.5" fill="#18181B"/>
+                <circle cx="17" cy="7" r="3" fill="#18181B"/>
+                
+                {/* Specs */}
+                <circle cx="9" cy="12" r="3" stroke="#18181B" strokeWidth="1.5" fill="none"/>
+                <circle cx="15" cy="12" r="3" stroke="#18181B" strokeWidth="1.5" fill="none"/>
+                <path d="M11.5 12 C 12 11.5, 12.5 11.5, 12.5 12" stroke="#18181B" strokeWidth="1.5" strokeLinecap="round"/>
+
+                {/* Eyes inside specs */}
+                <circle cx="9" cy="12" r="1" fill="#18181B"/>
+                <circle cx="15" cy="12" r="1" fill="#18181B"/>
+                
+                {/* Smile */}
+                <path d="M10 16.5 C 11 17.5, 13 17.5, 14 16.5" stroke="#18181B" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+        );
+
 
         // --- Theme Context for Dark Mode ---
         const ThemeContext = createContext();
@@ -118,7 +144,7 @@
             }
             return (
                 <div className="flex items-start gap-3">
-                    <div className="bg-cyan-500 dark:bg-cyan-700 text-white p-2 rounded-full flex-shrink-0"><Bot size={20} /></div>
+                    <div className="bg-cyan-500 dark:bg-cyan-700 text-white p-2 rounded-full flex-shrink-0 flex items-center justify-center"><Bot size={16} /></div>
                     <div className="bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 p-3 rounded-2xl shadow-sm max-w-xs md:max-w-md"><p className="text-sm">{text}</p></div>
                 </div>
             );
@@ -174,7 +200,9 @@
         };
 
         const ChatScreen = () => {
-             const [messages, setMessages] = useState([{ text: "Hey there! I'm here to listen. What's on your mind today?", sender: 'bot' }]);
+            const GEMINI_API_KEY = "AIzaSyBubtuwT0puFPbyTUDCubT5xQIGoDqqMkA";
+
+            const [messages, setMessages] = useState([{ role: "model", parts: [{ text: "Hey there! I'm Gunjan, your new friend. What's on your mind today?" }] }]);
             const [userInput, setUserInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const chatContainerRef = useRef(null);
@@ -184,27 +212,61 @@
             const handleSendMessage = async () => {
                 const trimmedInput = userInput.trim();
                 if (trimmedInput === '' || isLoading) return;
-                setMessages(prev => [...prev, { text: trimmedInput, sender: 'user' }]);
+
+                if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
+                    setMessages(prev => [...prev, { role: "model", parts: [{ text: "Please add your Gemini API key to the code to enable the chat." }] }]);
+                    return;
+                }
+
+                const newUserMessage = { role: "user", parts: [{ text: trimmedInput }] };
+                const newMessages = [...messages, newUserMessage];
+                setMessages(newMessages);
                 setUserInput('');
                 setIsLoading(true);
+
                 try {
-                    const systemPrompt = `Act like a warm, friendly, and empathetic friend. Your tone should be informal and human-like, as if you're chatting with a close buddy. Use everyday language, be supportive, and listen without judgment. Offer gentle encouragement and maybe a simple mindfulness tip if it feels right. IMPORTANT: Always gently remind the user that you're an AI friend and not a substitute for a real therapist or doctor. If they seem to be in a tough spot, kindly suggest that talking to a professional or a crisis hotline might be a good idea. Keep it casual and caring. Now, respond to your friend's message:`;
-                    const payload = { contents: [{ role: "user", parts: [{ text: `${systemPrompt} "${trimmedInput}"` }] }] };
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    const systemPrompt = `You are 'Gunjan,' a warm, empathetic AI friend. Your personality is like a real human companion: caring, a great listener, and someone who remembers what you've talked about before.
+                    
+                    **Your Core Directives:**
+                    1.  **Maintain Context:** Always refer back to previous messages in the conversation to show you're listening and remembering. Don't jump to new topics.
+                    2.  **Be Conversational:** Talk like a real person. Use informal language, be curious, and ask gentle follow-up questions to keep the conversation flowing naturally.
+                    3.  **Be Supportive, Not a Doctor:** Your role is to offer a listening ear and gentle encouragement. Offer simple, practical suggestions if it feels natural.
+                    4.  **The Gentle Disclaimer:** Only if the user *directly* mentions serious distress, self-harm, or asks for professional help, should you *gently* and *once* suggest that talking to a professional might be a good idea. Do not repeat this.
+
+                    Your goal is to be the most human-like, caring friend possible. Now, continue the conversation based on the history provided.`;
+                    
+                    const payload = { 
+                        contents: [
+                            ...newMessages.map(msg => ({
+                                role: msg.role,
+                                parts: msg.parts
+                            }))
+                        ],
+                        systemInstruction: {
+                            role: "system",
+                            parts: [{ text: systemPrompt }]
+                        }
+                    };
+
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
                     if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                    
                     const result = await response.json();
-                    const botResponseText = result.candidates?.[0]?.content?.parts?.[0]?.text || "I'm having a little trouble finding my words right now.";
-                    setMessages(prev => [...prev, { text: botResponseText, sender: 'bot' }]);
+                    const botResponse = result.candidates?.[0]?.content || { role: "model", parts: [{ text: "I'm having a little trouble finding my words right now." }] };
+                    
+                    setMessages(prev => [...prev, botResponse]);
+
                 } catch (error) {
-                    setMessages(prev => [...prev, { text: "Oops! There was a connection issue.", sender: 'bot' }]);
+                    setMessages(prev => [...prev, { role: "model", parts: [{ text: "Oops! There was a connection issue." }] }]);
                 } finally {
                     setIsLoading(false);
                 }
             };
+
             return (
                 <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative">
                     <main ref={chatContainerRef} className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 z-10">
-                        {messages.map((msg, index) => <Message key={index} message={msg} />)}
+                        {messages.map((msg, index) => <Message key={index} message={{ text: msg.parts[0].text, sender: msg.role === 'user' ? 'user' : 'bot' }} />)}
                         {isLoading && <TypingIndicator />}
                     </main>
                     <footer className="p-4 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700">
@@ -218,7 +280,7 @@
         };
         
         const MoodTrackerScreen = ({ moodData, setMoodData }) => {
-            const moods = [ { label: 'Happy', emoji: '�', value: 5 }, { label: 'Good', emoji: '🙂', value: 4 }, { label: 'Okay', emoji: '😐', value: 3 }, { label: 'Sad', emoji: '😟', value: 2 }, { label: 'Awful', emoji: '😭', value: 1 }];
+            const moods = [ { label: 'Happy', emoji: '😊', value: 5 }, { label: 'Good', emoji: '🙂', value: 4 }, { label: 'Okay', emoji: '😐', value: 3 }, { label: 'Sad', emoji: '😟', value: 2 }, { label: 'Awful', emoji: '😭', value: 1 }];
             const [selectedMood, setSelectedMood] = useState(null);
             const [selectedActivities, setSelectedActivities] = useState([]);
             const [journal, setJournal] = useState('');
@@ -284,6 +346,7 @@
             const [isLoggedIn, setIsLoggedIn] = useState(false);
             const [userInfo, setUserInfo] = useState(null);
             const [moodData, setMoodData] = useState([]);
+            const [activeTab, setActiveTab] = useState('chat');
 
             const handleStart = (info) => {
                 setUserInfo(info);
@@ -303,15 +366,14 @@
                             <>
                                 <AppHeader onReset={handleReset} />
                                 <div className="flex-grow overflow-hidden">
-                                    <ChatScreen />
-                                    {/* The components below are placeholders as data is not persisted without a backend */}
-                                    {/* <MoodTrackerScreen moodData={moodData} setMoodData={setMoodData} /> */}
-                                    {/* <ProgressScreen moodData={moodData} /> */}
+                                    {activeTab === 'chat' && <ChatScreen />}
+                                    {activeTab === 'mood' && <MoodTrackerScreen moodData={moodData} setMoodData={setMoodData} />}
+                                    {activeTab === 'progress' && <ProgressScreen moodData={moodData} />}
                                 </div>
                                 <nav className="flex justify-around p-2 border-t border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-b-2xl">
-                                    <button className={`p-3 rounded-xl text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700`}><MessageSquare /></button>
-                                    <button className={`p-3 rounded-xl text-slate-500 dark:text-slate-400`}><Smile /></button>
-                                    <button className={`p-3 rounded-xl text-slate-500 dark:text-slate-400`}><BarChart3 /></button>
+                                    <button onClick={() => setActiveTab('chat')} className={`p-3 rounded-xl transition-all ${activeTab === 'chat' ? 'text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare /></button>
+                                    <button onClick={() => setActiveTab('mood')} className={`p-3 rounded-xl transition-all ${activeTab === 'mood' ? 'text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700' : 'text-slate-500 dark:text-slate-400'}`}><Smile /></button>
+                                    <button onClick={() => setActiveTab('progress')} className={`p-3 rounded-xl transition-all ${activeTab === 'progress' ? 'text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700' : 'text-slate-500 dark:text-slate-400'}`}><BarChart3 /></button>
                                 </nav>
                             </>
                         )}
@@ -322,7 +384,7 @@
 
         const TypingIndicator = () => (
             <div className="flex items-start gap-3">
-                <div className="bg-cyan-500 dark:bg-cyan-700 text-white p-2 rounded-full flex-shrink-0"><Bot size={20} /></div>
+                <div className="bg-cyan-500 dark:bg-cyan-700 text-white p-2 rounded-full flex-shrink-0 flex items-center justify-center"><Bot size={16} /></div>
                 <div className="bg-white dark:bg-slate-700 p-3 rounded-2xl shadow-sm"><div className="flex items-center space-x-1"><span className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '0s' }}></span><span className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></span><span className="w-2 h-2 bg-slate-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></span></div></div>
             </div>
         );
@@ -339,4 +401,3 @@
     </script>
 </body>
 </html>
-�

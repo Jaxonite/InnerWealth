@@ -20,18 +20,6 @@
     <!-- Babel for JSX Transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
-        window.initializeApp = initializeApp;
-        
-        import { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
-        window.firebaseAuth = { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut };
-
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs, where } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
-        window.firebaseFirestore = { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs, where };
-    </script>
-
     <style>
         /* Basic styling to prevent layout shifts */
         body { font-family: sans-serif; }
@@ -43,9 +31,6 @@
     <script type="text/babel">
         // --- Import Libraries from Window Object ---
         const { useState, useEffect, useRef, createContext, useContext } = React;
-        const { initializeApp } = window;
-        const { getAuth, signInAnonymously, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } = window.firebaseAuth;
-        const { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, getDocs, where } = window.firebaseFirestore;
         
         // --- Note: Recharts and Lucide-React are complex and not easily available via simple script tags for this kind of bundling.
         // --- For a real-world deployment, a build step (like Vite or Create React App) would be necessary.
@@ -57,32 +42,13 @@
         const MessageSquare = () => <Icon name="💬" />;
         const Smile = () => <Icon name="😊" />;
         const BarChart3 = () => <Icon name="📊" />;
-        const LogOut = () => <Icon name="🚪" />;
+        const LogOut = () => <Icon name="🔄" />;
         const Send = () => <Icon name="➤" />;
         const Bot = () => <Icon name="🤖" />;
         const User = () => <Icon name="👤" />;
         const Award = () => <Icon name="🏆" />;
         const Calendar = () => <Icon name="🗓️" />;
         const BarChartHorizontal = () => <Icon name="📈" />;
-
-
-        // --- Firebase Configuration ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyA0gDOZIpV_XtGwAI_6PQsvUpTkn0saJe8",
-            authDomain: "innerwealth-8d345.firebaseapp.com",
-            projectId: "innerwealth-8d345",
-            storageBucket: "innerwealth-8d345.appspot.com",
-            messagingSenderId: "91315045649",
-            appId: "1:91315045649:web:2d01e70a5dbfb4a92cf8b0",
-            measurementId: "G-1GRHLEQVT4"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // --- App ID for Firestore Path ---
-        const appId = 'innerwealth-8d345';
 
         // --- Theme Context for Dark Mode ---
         const ThemeContext = createContext();
@@ -122,7 +88,7 @@
         ];
 
         // --- Helper & Theming Components ---
-        const AppHeader = ({ onSignOut }) => {
+        const AppHeader = ({ onReset }) => {
             const { theme, toggleTheme } = useTheme();
             return (
                 <header className="bg-cyan-600 dark:bg-slate-800 text-white p-4 flex items-center justify-between shadow-md z-10 rounded-t-2xl">
@@ -131,7 +97,7 @@
                         <button onClick={toggleTheme} className="p-2 rounded-full hover:bg-white/20 transition-colors">
                             {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                         </button>
-                        <button onClick={onSignOut} className="p-2 rounded-full hover:bg-white/20 transition-colors">
+                        <button onClick={onReset} title="Reset App" className="p-2 rounded-full hover:bg-white/20 transition-colors">
                             <LogOut size={20} />
                         </button>
                     </div>
@@ -159,11 +125,20 @@
         };
 
         // --- Screen Components ---
-        const AuthScreen = () => {
-            const [error, setError] = useState(null);
-            const handleGoogleSignIn = async () => { try { await signInWithPopup(auth, new GoogleAuthProvider()); } catch (e) { setError("Failed to sign in with Google."); } };
-            const handleAnonymousSignIn = async () => { try { await signInAnonymously(auth); } catch (e) { setError("Failed to sign in anonymously."); } };
-            
+        const WelcomeScreen = ({ onStart }) => {
+            const [name, setName] = useState('');
+            const [age, setAge] = useState('');
+            const [error, setError] = useState('');
+
+            const handleStart = () => {
+                if (age && (isNaN(age) || age < 1 || age > 120)) {
+                    setError('Please enter a valid age.');
+                    return;
+                }
+                setError('');
+                onStart({ name: name.trim() || 'Friend', age: age });
+            };
+
             return (
                 <div className="w-full h-full flex flex-col items-center justify-end bg-slate-50 dark:bg-slate-900 rounded-2xl relative overflow-hidden">
                     <div className="absolute inset-0 w-full h-full z-0">
@@ -174,8 +149,23 @@
                         <h1 className="text-3xl font-bold text-white drop-shadow-lg">Welcome to Inner Wealth</h1>
                         <p className="text-slate-100 drop-shadow-md mt-2">Your personal space for reflection and support.</p>
                         <div className="mt-8 space-y-4 w-full max-w-xs mx-auto">
-                            <button onClick={handleGoogleSignIn} className="w-full bg-sky-500 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-sky-600 transition-all">Sign in with Google</button>
-                            <button onClick={handleAnonymousSignIn} className="w-full bg-slate-500 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-slate-600 transition-all">Continue Anonymously</button>
+                            <input
+                                type="text"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Name (optional)"
+                                className="w-full p-3 border border-slate-300 bg-white/80 rounded-xl focus:ring-2 focus:ring-cyan-500"
+                            />
+                            <input
+                                type="number"
+                                value={age}
+                                onChange={(e) => setAge(e.target.value)}
+                                placeholder="Age"
+                                className="w-full p-3 border border-slate-300 bg-white/80 rounded-xl focus:ring-2 focus:ring-cyan-500"
+                            />
+                            <button onClick={handleStart} className="w-full bg-cyan-600 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-cyan-700 transition-all">
+                                Begin Your Journey
+                            </button>
                         </div>
                         {error && <p className="text-rose-300 mt-4">{error}</p>}
                     </div>
@@ -184,7 +174,7 @@
         };
 
         const ChatScreen = () => {
-            const [messages, setMessages] = useState([{ text: "Hey there! I'm here to listen. What's on your mind today?", sender: 'bot' }]);
+             const [messages, setMessages] = useState([{ text: "Hey there! I'm here to listen. What's on your mind today?", sender: 'bot' }]);
             const [userInput, setUserInput] = useState('');
             const [isLoading, setIsLoading] = useState(false);
             const chatContainerRef = useRef(null);
@@ -211,7 +201,6 @@
                     setIsLoading(false);
                 }
             };
-
             return (
                 <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900 relative">
                     <main ref={chatContainerRef} className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 z-10">
@@ -227,52 +216,40 @@
                 </div>
             );
         };
-
-        const MoodTrackerScreen = ({ userId }) => {
-            const moods = [ { label: 'Happy', emoji: '😊', value: 5 }, { label: 'Good', emoji: '🙂', value: 4 }, { label: 'Okay', emoji: '😐', value: 3 }, { label: 'Sad', emoji: '😟', value: 2 }, { label: 'Awful', emoji: '😭', value: 1 }];
+        
+        const MoodTrackerScreen = ({ moodData, setMoodData }) => {
+            const moods = [ { label: 'Happy', emoji: '�', value: 5 }, { label: 'Good', emoji: '🙂', value: 4 }, { label: 'Okay', emoji: '😐', value: 3 }, { label: 'Sad', emoji: '😟', value: 2 }, { label: 'Awful', emoji: '😭', value: 1 }];
             const [selectedMood, setSelectedMood] = useState(null);
             const [selectedActivities, setSelectedActivities] = useState([]);
             const [journal, setJournal] = useState('');
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [message, setMessage] = useState('');
-            const [hasCheckedInToday, setHasCheckedInToday] = useState(false);
+            
+            const hasCheckedInToday = moodData.some(entry => new Date(entry.date).toDateString() === new Date().toDateString());
 
             useEffect(() => {
-                const checkTodaysEntry = async () => {
-                    if (!userId) return;
-                    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
-                    const q = query(collection(db, `artifacts/${appId}/users/${userId}/moods`), where("timestamp", ">=", startOfDay));
-                    const snapshot = await getDocs(q);
-                    if (!snapshot.empty) {
-                        setHasCheckedInToday(true);
-                        setMessage("You've already checked in today. See you tomorrow!");
-                    }
-                };
-                checkTodaysEntry();
-            }, [userId]);
+                if(hasCheckedInToday) {
+                    setMessage("You've already checked in today. See you tomorrow!");
+                }
+            }, [hasCheckedInToday]);
 
-            const handleActivityToggle = (activityId) => setSelectedActivities(prev => prev.includes(activityId) ? prev.filter(id => id !== activityId) : [...prev, activityId]);
-            
-            const handleSubmit = async () => {
+            const handleSubmit = () => {
                 if (!selectedMood) { setMessage('Please select a mood.'); return; }
                 setIsSubmitting(true);
-                try {
-                    await addDoc(collection(db, `artifacts/${appId}/users/${userId}/moods`), { mood: selectedMood.label, moodValue: selectedMood.value, activities: selectedActivities, journal, timestamp: serverTimestamp() });
-                    setMessage('Your entry has been saved. Thank you for checking in!');
-                    setHasCheckedInToday(true);
-                } catch (error) {
-                    setMessage('There was an error saving your entry.');
-                } finally {
-                    setIsSubmitting(false);
-                }
+                const newEntry = {
+                    mood: selectedMood.label,
+                    moodValue: selectedMood.value,
+                    activities: selectedActivities,
+                    journal,
+                    date: new Date().toISOString()
+                };
+                setMoodData(prevData => [...prevData, newEntry]);
+                setMessage('Your entry has been saved. Thank you for checking in!');
+                setIsSubmitting(false);
             };
 
             if (hasCheckedInToday) {
-                return (
-                    <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 h-full flex flex-col justify-center items-center relative">
-                        <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 z-10">{message}</h2>
-                    </div>
-                );
+                return <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 h-full flex flex-col justify-center items-center relative"><h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200 z-10">{message}</h2></div>;
             }
 
             return (
@@ -284,7 +261,7 @@
                         </div>
                         <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-300 mb-3 mt-6">What have you been up to?</h3>
                         <div className="flex flex-wrap gap-2 justify-center">
-                            {activitiesList.map(act => <button key={act.id} onClick={() => handleActivityToggle(act.id)} className={`py-2 px-3 rounded-full text-sm transition-all ${selectedActivities.includes(act.id) ? 'bg-cyan-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>{act.emoji} {act.label}</button>)}
+                            {activitiesList.map(act => <button key={act.id} onClick={() => setSelectedActivities(prev => prev.includes(act.id) ? prev.filter(id => id !== act.id) : [...prev, act.id])} className={`py-2 px-3 rounded-full text-sm transition-all ${selectedActivities.includes(act.id) ? 'bg-cyan-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}>{act.emoji} {act.label}</button>)}
                         </div>
                         <div className="mt-6">
                             <label htmlFor="journal" className="block text-lg font-semibold text-slate-800 dark:text-slate-300 mb-2">Add a journal entry (optional):</label>
@@ -299,42 +276,42 @@
             );
         };
 
-        const ProgressScreen = ({ userId }) => {
-            return <div className="p-8 text-center dark:text-white">Progress Screen requires Recharts, which is not available in this bundled version.</div>
+        const ProgressScreen = ({ moodData }) => {
+            return <div className="p-8 text-center dark:text-white">Progress Screen requires Recharts, which is not available in this bundled version. A real app would use a library like Recharts to build the charts seen in previous versions.</div>
         };
 
         const MainApp = () => {
-            const [user, setUser] = useState(null);
-            const [isAuthReady, setIsAuthReady] = useState(false);
-            const [activeTab, setActiveTab] = useState('chat');
+            const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [userInfo, setUserInfo] = useState(null);
+            const [moodData, setMoodData] = useState([]);
 
-            useEffect(() => {
-                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-                    setUser(currentUser);
-                    setIsAuthReady(true);
-                });
-                return () => unsubscribe();
-            }, []);
+            const handleStart = (info) => {
+                setUserInfo(info);
+                setIsLoggedIn(true);
+            };
 
-            const handleSignOut = async () => { try { await signOut(auth); } catch (error) { console.error("Sign out error", error); } };
-
-            if (!isAuthReady) { return <div className="w-full h-screen flex items-center justify-center text-xl font-semibold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900">Loading...</div>; }
+            const handleReset = () => {
+                setIsLoggedIn(false);
+                setUserInfo(null);
+                setMoodData([]);
+            };
 
             return (
                 <div className="bg-slate-200 dark:bg-slate-950 flex flex-col items-center justify-center min-h-screen p-2 sm:p-4">
                     <div className="w-full max-w-2xl bg-slate-50 dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col h-[95vh] sm:h-[90vh]">
-                        {!user ? <AuthScreen /> : (
+                        {!isLoggedIn ? <WelcomeScreen onStart={handleStart} /> : (
                             <>
-                                <AppHeader onSignOut={handleSignOut} />
+                                <AppHeader onReset={handleReset} />
                                 <div className="flex-grow overflow-hidden">
-                                    {activeTab === 'chat' && <ChatScreen />}
-                                    {activeTab === 'mood' && <MoodTrackerScreen userId={user.uid} />}
-                                    {activeTab === 'progress' && <ProgressScreen userId={user.uid} />}
+                                    <ChatScreen />
+                                    {/* The components below are placeholders as data is not persisted without a backend */}
+                                    {/* <MoodTrackerScreen moodData={moodData} setMoodData={setMoodData} /> */}
+                                    {/* <ProgressScreen moodData={moodData} /> */}
                                 </div>
                                 <nav className="flex justify-around p-2 border-t border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-b-2xl">
-                                    <button onClick={() => setActiveTab('chat')} className={`p-3 rounded-xl transition-all ${activeTab === 'chat' ? 'text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700' : 'text-slate-500 dark:text-slate-400'}`}><MessageSquare /></button>
-                                    <button onClick={() => setActiveTab('mood')} className={`p-3 rounded-xl transition-all ${activeTab === 'mood' ? 'text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700' : 'text-slate-500 dark:text-slate-400'}`}><Smile /></button>
-                                    <button onClick={() => setActiveTab('progress')} className={`p-3 rounded-xl transition-all ${activeTab === 'progress' ? 'text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700' : 'text-slate-500 dark:text-slate-400'}`}><BarChart3 /></button>
+                                    <button className={`p-3 rounded-xl text-cyan-600 dark:text-white bg-cyan-100 dark:bg-cyan-700`}><MessageSquare /></button>
+                                    <button className={`p-3 rounded-xl text-slate-500 dark:text-slate-400`}><Smile /></button>
+                                    <button className={`p-3 rounded-xl text-slate-500 dark:text-slate-400`}><BarChart3 /></button>
                                 </nav>
                             </>
                         )}
@@ -362,3 +339,4 @@
     </script>
 </body>
 </html>
+�
